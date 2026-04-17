@@ -49,16 +49,16 @@
         position: sticky;
         top: 0;
         z-index: 1000;
-        padding: 0 18px;
-        /* Increased padding */
-        height: 60px;
-        /* Better height */
+        padding: 0 5px;
+        /* Minimal padding for narrow screens */
+        height: 50px;
+        /* Reduced for more space */
         background: rgba(255, 255, 255, 0.98);
         backdrop-filter: blur(20px);
         border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
     }
 
     .header-title h2 {
@@ -99,14 +99,22 @@
     }
 
     .content-wrapper {
-        padding: 15px;
+        padding: 8px 5px;
+        /* Tighter side padding to prevent clipping */
     }
 
     /* Grid layouts to stack */
     .dashboard-grid {
+        display: grid !important;
         grid-template-columns: 1fr 1fr !important;
-        gap: 10px;
-        margin-bottom: 15px;
+        gap: 6px;
+        justify-items: center;
+        /* Center each card in its cell */
+        align-items: center;
+        margin: 0 auto 12px !important;
+        width: 100%;
+        max-width: 340px;
+        /* Constrain grid to center it better */
     }
 
     .charts-grid {
@@ -196,21 +204,21 @@
     }
 
     .chart-card {
-        padding: 15px 10px;
-        /* Reduced padding */
+        padding: 10px 15px;
+        /* Increased side padding to prevent clipping */
         min-height: auto;
     }
 
     .chart-card canvas {
-        max-height: 220px !important;
-        /* Constrain chart height */
+        max-height: 180px !important;
+        /* Shorter chart for visibility */
         width: 100% !important;
     }
 
     .chart-card h3 {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: var(--primary-dark);
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         font-weight: 700;
     }
 
@@ -248,28 +256,35 @@
     }
 
     .stats-card {
-        padding: 12px 10px;
-        gap: 6px;
+        padding: 5px 2px;
+        /* Minimal padding */
+        gap: 1px;
         display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
         justify-content: center;
-        min-height: 105px;
-        /* More compact stats */
+        min-height: 70px;
+        max-width: 135px;
+        /* Slightly narrower to be safe */
+        margin: 0 auto !important;
+        /* Center and remove bottom margin */
+        width: 100%;
+        /* Aggressively short cards */
     }
 
     .stats-card .icon-box {
-        width: 40px;
-        height: 40px;
-        font-size: 1.15rem;
+        width: 32px;
+        /* Smaller icon box */
+        height: 32px;
+        font-size: 1rem;
         border-radius: 50%;
         margin-bottom: 2px;
         background: var(--primary-ultra-light);
     }
 
     .stat-info .stat-value {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
         font-weight: 800;
         margin-top: 0;
         color: var(--primary-dark);
@@ -359,30 +374,64 @@
         padding-top: 8px !important;
     }
 
-    .data-table .action-btn {
-        width: 32px !important;
-        height: 32px !important;
-        padding: 0 !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    /* Auth Screens */
+    .auth-card {
+        padding: 15px 12px;
+        /* Tighter padding */
+        width: 90%;
+        max-width: 340px;
+        margin: 5vh auto;
+        /* Move it up slightly */
     }
 
-    /* Form Optimizations */
-    .auth-card {
-        width: 92%;
-        padding: 2.5rem 1.5rem;
-        margin: 20px auto;
+    .hero-3d-image {
+        width: 130px;
+        /* Reduced from 180px */
+        height: auto;
+        margin-bottom: 5px;
     }
 
     .auth-tabs {
-        margin: 25px 0;
-        padding: 6px;
+        margin: 15px 0;
+        padding: 4px;
+        background: rgba(0, 0, 0, 0.03);
+        border-radius: 12px;
     }
 
     .auth-tab {
-        padding: 12px;
-        font-size: 1rem;
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    .auth-card .logo i {
+        font-size: 1.5rem;
+    }
+
+    .auth-card .logo h1 {
+        font-size: 1.3rem;
+    }
+
+    .form-group {
+        margin-bottom: 10px;
+        /* Tighter spacing */
+    }
+
+    .form-group input {
+        padding: 8px 12px;
+        /* Slimmer inputs */
+        font-size: 0.85rem;
+        height: auto;
+    }
+
+    .form-group label {
+        font-size: 0.75rem;
+        margin-bottom: 3px;
+    }
+
+    .primary-btn {
+        padding: 10px;
+        /* More compact button */
+        font-size: 0.9rem;
     }
 
     input,

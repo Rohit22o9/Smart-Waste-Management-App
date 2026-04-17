@@ -9,6 +9,11 @@ class DashboardApp {
         this.authMode = 'login'; // login or signup
         this.quantumMode = false;
 
+        // Smart API Detection: use localhost for dev, relative for production/Vercel
+        this.apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000'
+            : '';
+
         // Add overlay to body for mobile sidebar
         const overlay = document.createElement('div');
         overlay.className = 'sidebar-overlay';
@@ -23,15 +28,9 @@ class DashboardApp {
         // Listen for Real-Time data simulated from Firebase/ESP32
         MockDB.onChange(() => this.updateRealTimeData());
 
-        // Splash Screen Removal
+        // Splash Screen Removal (Now automatic via video)
         window.addEventListener('load', () => {
-            setTimeout(() => {
-                const splash = document.getElementById('splash-screen');
-                if (splash) {
-                    splash.style.transform = 'translateY(-100%)';
-                    setTimeout(() => splash.remove(), 800);
-                }
-            }, 3500); // Wait for animations to finish
+            setTimeout(() => this.playSplashVdo(), 1200); // Small delay to see the leaf logo
         });
 
         // Global Button Ripple Listener
@@ -55,6 +54,42 @@ class DashboardApp {
         // Check for existing session
         if (this.role) {
             setTimeout(() => this.initiateDashboard(this.role, this.username), 100);
+        }
+    }
+
+    async playSplashVdo() {
+        const vdo = document.getElementById('splash-video');
+        const trigger = document.getElementById('splash-logo-trigger');
+        if (!vdo) return;
+
+        // Hide the logo/text
+        if (trigger) trigger.style.display = 'none';
+
+        // Show and play video
+        vdo.style.display = 'block';
+        try {
+            await vdo.play();
+        } catch (err) {
+            console.error("Video play failed:", err);
+            this.finishSplash(); // Fail safe
+        }
+
+        // When video ends, enter app
+        vdo.onended = () => {
+            this.finishSplash();
+        };
+    }
+
+    finishSplash() {
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+            splash.style.opacity = '0';
+            splash.style.transition = 'opacity 0.8s ease';
+            setTimeout(() => {
+                splash.remove();
+                // Override any auto-login to show login page if requested
+                this.showView('auth-view');
+            }, 800);
         }
     }
 
@@ -100,7 +135,7 @@ class DashboardApp {
 
         try {
             if (this.authMode === 'signup') {
-                const res = await fetch('http://localhost:5000/api/signup', {
+                const res = await fetch(`${this.apiBase}/api/signup`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: user, password: pass })
@@ -114,7 +149,7 @@ class DashboardApp {
                     alert(data.error || "Signup failed");
                 }
             } else {
-                const res = await fetch('http://localhost:5000/api/login', {
+                const res = await fetch(`${this.apiBase}/api/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: user, password: pass })
@@ -328,8 +363,13 @@ class DashboardApp {
         if (this.currentView === 'admin-overview') {
             // Update live chart values
             if (this.charts['overviewChart']) {
-                this.charts['overviewChart'].data.datasets[0].data = bins.map(b => b.fillLevel);
-                this.charts['overviewChart'].data.datasets[0].backgroundColor = bins.map(b => b.fillLevel >= 90 ? '#E53935' : (b.fillLevel >= 50 ? '#FFB300' : '#4CAF50'));
+                let chartBins = bins;
+                if (window.innerWidth <= 768) {
+                    chartBins = bins.slice(0, 8); // Stay consistent with 8 bins on mobile
+                }
+                this.charts['overviewChart'].data.labels = chartBins.map(b => b.id);
+                this.charts['overviewChart'].data.datasets[0].data = chartBins.map(b => b.fillLevel);
+                this.charts['overviewChart'].data.datasets[0].backgroundColor = chartBins.map(b => b.fillLevel >= 90 ? '#E53935' : (b.fillLevel >= 50 ? '#FFB300' : '#4CAF50'));
                 this.charts['overviewChart'].update();
             }
 
@@ -582,18 +622,22 @@ class DashboardApp {
     async initAdminOverview() {
         const bins = await MockDB.getBins();
 
-        // 1. Setup Chart
+        let chartBins = bins;
+        if (window.innerWidth <= 768) {
+            chartBins = bins.slice(0, 8); // Only show first 8 for clarity on mobile
+        }
+
         const ctx = document.getElementById('fill-level-chart').getContext('2d');
-        const labels = bins.map(b => b.id);
-        const data = bins.map(b => b.fillLevel);
-        const bgColors = bins.map(b => b.fillLevel >= 90 ? '#E53935' : (b.fillLevel >= 50 ? '#FFB300' : '#4CAF50'));
+        const labels = chartBins.map(b => b.id);
+        const data = chartBins.map(b => b.fillLevel);
+        const bgColors = chartBins.map(b => b.fillLevel >= 90 ? '#E53935' : (b.fillLevel >= 50 ? '#FFB300' : '#4CAF50'));
 
         this.charts['overviewChart'] = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Fill Level (%)',
+                    label: this.t('fill_level') || 'Fill Level (%)',
                     data: data,
                     backgroundColor: bgColors,
                     borderRadius: 4
@@ -602,8 +646,31 @@ class DashboardApp {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        right: 15, // Extra space on the right to prevent clipping
+                        left: 5
+                    }
+                },
                 scales: {
-                    y: { beginAtZero: true, max: 100 }
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            font: { size: window.innerWidth <= 768 ? 9 : 12 },
+                            padding: window.innerWidth <= 768 ? 2 : 5
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: { size: window.innerWidth <= 768 ? 9 : 12 },
+                            maxRotation: 45,
+                            minRotation: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
                 }
             }
         });
@@ -641,7 +708,53 @@ class DashboardApp {
         `).join('');
     }
 
+    async toggleQuantumMode(enabled) {
+        this.quantumMode = enabled;
+        const container = document.querySelector('.quantum-toggle-container');
+        const stats = document.getElementById('quantum-stats');
+        const btn = document.getElementById('quantum-btn');
+
+        if (enabled) {
+            if (container) {
+                container.style.border = '2px solid var(--primary)';
+                container.style.boxShadow = '0 8px 15px rgba(46, 125, 50, 0.15)';
+                container.style.background = 'white';
+            }
+            if (stats) stats.style.display = 'block';
+            if (btn) {
+                btn.innerText = 'OFF';
+                btn.style.background = 'var(--primary)';
+                btn.style.color = 'white';
+            }
+            this.showToast("Quantum Optimization Active", "success");
+        } else {
+            if (container) {
+                container.style.border = '2px dashed var(--primary-light)';
+                container.style.boxShadow = 'none';
+                container.style.background = 'var(--primary-ultra-light)';
+            }
+            if (stats) stats.style.display = 'none';
+            if (btn) {
+                btn.innerText = 'ON';
+                btn.style.background = 'transparent';
+                btn.style.color = 'var(--primary)';
+            }
+        }
+
+        // Re-calculate route with quantum priority if we are in route view
+        if (this.currentView === 'admin-routes') {
+            const loading = document.getElementById('route-loading');
+            if (loading) loading.style.display = 'flex';
+
+            setTimeout(() => {
+                this.initAdminRoutes();
+                if (loading) loading.style.display = 'none';
+            }, 800);
+        }
+    }
+
     async initAdminRoutes() {
+        this.syncQuantumUI();
         // Init Map
         const map = L.map('admin-route-map').setView([28.6139, 77.2090], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -697,7 +810,36 @@ class DashboardApp {
 
             // 2. Draw route
             this.drawAnimatedRoute(map, finalRouteBins);
+
+            // FORCE BUTTON SYNC HERE (Safe spot)
+            this.syncQuantumUI();
         }, this.quantumMode ? 3000 : 2000);
+    }
+
+    syncQuantumUI() {
+        const btn = document.getElementById('quantum-btn');
+        const container = document.querySelector('.quantum-toggle-container');
+        const stats = document.getElementById('quantum-stats');
+
+        if (this.quantumMode && btn) {
+            btn.innerText = 'OFF';
+            btn.style.background = 'var(--primary)';
+            btn.style.color = 'white';
+            if (container) {
+                container.style.border = '2px solid var(--primary)';
+                container.style.background = 'white';
+            }
+            if (stats) stats.style.display = 'block';
+        } else if (btn) {
+            btn.innerText = 'ON';
+            btn.style.background = 'transparent';
+            btn.style.color = 'var(--primary)';
+            if (container) {
+                container.style.border = '2px dashed var(--primary-light)';
+                container.style.background = 'var(--primary-ultra-light)';
+            }
+            if (stats) stats.style.display = 'none';
+        }
     }
 
     renderStops(bins) {
@@ -842,6 +984,8 @@ class DashboardApp {
             </tr>
             `;
         }).join('');
+
+        this.syncQuantumUI();
     }
 
     async initAdminPredictions() {
@@ -947,7 +1091,26 @@ class DashboardApp {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, max: 100 } }
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            font: { size: window.innerWidth <= 768 ? 9 : 12 },
+                            padding: window.innerWidth <= 768 ? 2 : 5
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: { size: window.innerWidth <= 768 ? 9 : 12 },
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: window.innerWidth > 768 }
+                }
             }
         });
     }

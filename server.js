@@ -30,14 +30,14 @@ const User = mongoose.model('User', userSchema);
 app.post('/api/signup', async (req, res) => {
     try {
         const { username, password } = req.body;
-        
+
         // Check if user exists
         const existing = await User.findOne({ username });
         if (existing) return res.status(400).json({ error: "Username already exists" });
 
         const newUser = new User({ username, password });
         await newUser.save();
-        
+
         res.status(201).json({ message: "User created successfully" });
     } catch (err) {
         res.status(500).json({ error: "Server error during signup" });
@@ -63,7 +63,11 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
