@@ -7,6 +7,15 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Serve static files (HTML, CSS, JS) from the root directory
+const path = require('path');
+app.use(express.static(path.join(__dirname, '.')));
+
+// Fallback to index.html for any other route (to support SPA behavior if needed)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // MongoDB Connection
 const MONGO_URI = "mongodb+srv://rohitdb:Rohit2209@cluster0.l4v0ldu.mongodb.net/econova?retryWrites=true&w=majority&appName=Cluster0";
 
